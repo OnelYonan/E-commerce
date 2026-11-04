@@ -1,0 +1,55 @@
+name: Build iPhone Scanner for Windows
+
+on:
+  push:
+    branches: [main, claude/phone-malware-scanner-1lsg9m]
+    paths:
+      - "phone-scanner/**"
+      - ".github/workflows/build-iphone-scanner.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
+    defaults:
+      run:
+        working-directory: phone-scanner
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: python -m pip install pyinstaller cryptography
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build iPhoneScanner.exe
+        run: pyinstaller --noconfirm --onefile --windowed --name iPhoneScanner iPhoneScanner.pyw
+
+      - name: Smoke-test the command line on Windows
+        run: python scan_iphone.py --version
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iPhoneScanner-Windows
+          path: phone-scanner/dist/iPhoneScanner.exe
+
+      - name: Publish as a downloadable release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete iphone-scanner-latest --yes --cleanup-tag || true
+          gh release create iphone-scanner-latest dist/iPhoneScanner.exe \
+            --target "${{ github.sha }}" --prerelease \
+            --title "iPhone Scanner for Windows (latest build)" \
+            --notes "Download **iPhoneScanner.exe** below and double-click it. First back up your iPhone with Apple Devices / iTunes (tick 'Encrypt local backup'). Windows may say 'Windows protected your PC' because the app isn't code-signed: click **More info** then **Run anyway**."

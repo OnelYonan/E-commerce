@@ -10,6 +10,21 @@ way professional tools such as Amnesty's MVT do: it analyzes a **backup of your 
 on your computer. Nothing is uploaded anywhere. The only network access is downloading
 public spyware signatures.
 
+## Easiest way: the Windows app (no Python needed)
+
+1. Back up your iPhone with **Apple Devices** or iTunes, with **Encrypt local backup** ticked (see step 2 below).
+2. Download **iPhoneScanner.exe** from this repository's **Releases** page
+   (release "iPhone Scanner for Windows (latest build)").
+3. Double-click it. If Windows says *"Windows protected your PC"*, click **More info → Run anyway**
+   (the app isn't code-signed).
+4. Type your backup password and click **Scan my iPhone**. The report opens in your browser and is
+   saved in *Documents\iPhone Scanner Reports*.
+
+The `.exe` is built automatically by GitHub Actions (`.github/workflows/build-iphone-scanner.yml`).
+With Python installed you can open the same window with `python iPhoneScanner.pyw`.
+
+## Command-line version
+
 ## 1. Install
 
 You need Python 3.9+.

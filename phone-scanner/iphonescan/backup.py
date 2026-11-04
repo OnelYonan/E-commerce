@@ -34,7 +34,8 @@ class BackupError(RuntimeError):
 
 def default_backup_roots() -> list[Path]:
     home = Path.home()
-    roots = [home / "Library/Application Support/MobileSync/Backup"]  # macOS
+    roots = [Path(p) for p in os.environ.get("IPHONESCAN_BACKUP_DIR", "").split(os.pathsep) if p]
+    roots.append(home / "Library/Application Support/MobileSync/Backup")  # macOS
     if sys.platform.startswith("win"):
         appdata = os.environ.get("APPDATA")
         if appdata:
@@ -44,17 +45,31 @@ def default_backup_roots() -> list[Path]:
 
 
 def find_backups(extra_roots: list[Path] | None = None) -> list[dict]:
-    found = []
+    found, seen = [], set()
     for root in (extra_roots or []) + default_backup_roots():
-        for d in sorted(root.iterdir()) if root.is_dir() else []:
-            if (d / "Manifest.plist").is_file():
-                info = _load_plist(d / "Info.plist") or {}
-                found.append({
-                    "path": str(d),
-                    "device_name": info.get("Device Name", "?"),
-                    "product_version": info.get("Product Version", "?"),
-                    "last_backup": str(info.get("Last Backup Date", "?")),
-                })
+        try:
+            subdirs = sorted(root.iterdir()) if root.is_dir() else []
+        except OSError:  # e.g. macOS blocks the folder without Full Disk Access
+            continue
+        for d in subdirs:
+            if str(d) in seen:
+                continue
+            seen.add(str(d))
+            try:
+                if not (d / "Manifest.plist").is_file():
+                    continue
+            except OSError:
+                continue
+            info = _load_plist(d / "Info.plist") or {}
+            manifest = _load_plist(d / "Manifest.plist") or {}
+            found.append({
+                "path": str(d),
+                "device_name": info.get("Device Name", "?"),
+                "product_version": info.get("Product Version", "?"),
+                "last_backup": str(info.get("Last Backup Date", "?")),
+                "encrypted": bool(manifest.get("IsEncrypted")),
+            })
+    found.sort(key=lambda b: b["last_backup"], reverse=True)
     return found
 
 

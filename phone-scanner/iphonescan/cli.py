@@ -137,6 +137,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")  # never crash on odd characters in a console
+        except (AttributeError, ValueError):
+            pass
     argv = sys.argv[1:] if argv is None else argv
     if not argv or argv[0] not in ("scan", "update", "list", "-h", "--help", "--version"):
         argv = ["scan"] + argv

@@ -63,6 +63,15 @@ def update(progress=print) -> int:
     return ok
 
 
+def age_days() -> float | None:
+    """Days since signatures were last downloaded (None if never)."""
+    files = list(cache_dir().glob("*.stix2"))
+    if not files:
+        return None
+    import time
+    return (time.time() - max(f.stat().st_mtime for f in files)) / 86400
+
+
 _PATTERN = re.compile(r"([\w-]+:[\w.\-]+)\s*=\s*'((?:[^'\\]|\\.)*)'")
 
 
